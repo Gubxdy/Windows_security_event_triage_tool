@@ -1,0 +1,4 @@
+Level,Date and Time,Source,Event ID,Task Category,User,Computer,Keywords,Message
+Information,"10/21/2026 11:00:00 AM",Microsoft-Windows-Security-Auditing,4720,User Account Management,LAB\admin,LAB-DC01,Audit Success,"A user account was created. Target Account Name: temp-admin; Target Domain Name: LAB; Subject Account Name: admin;"
+Information,"10/21/2026 11:02:00 AM",Microsoft-Windows-Security-Auditing,4732,Security Group Management,LAB\admin,LAB-WS02,Audit Success,"A member was added to a security-enabled local group. Member Name: temp-admin; Group Name: Administrators; Subject Account Name: admin;"
+Information,"10/21/2026 11:03:00 AM",Microsoft-Windows-Security-Auditing,4624,Logon,LAB\temp-admin,LAB-WS02,Audit Success,"An account was successfully logged on. Account Name: temp-admin; Logon Type: 2; Workstation Name: LAB-WS02; Source Network Address: -"

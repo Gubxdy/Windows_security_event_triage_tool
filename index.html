@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="A local, educational Windows Security Event Log triage tool. CSV analysis stays in your browser.">
+  <title>Windows Security Event Log Triage Tool</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="topbar">
+    <div class="brand-mark" aria-hidden="true">WT</div>
+    <div class="brand-copy">
+      <p class="eyebrow">SECURITY OPERATIONS · LEARNING LAB</p>
+      <h1>Windows Security Event Log Triage Tool</h1>
+      <p class="subtitle">A clear, explainable first look at Windows security activity.</p>
+    </div>
+    <span class="local-badge"><span class="status-dot"></span> Local analysis</span>
+  </header>
+
+  <main id="main-content" class="page-shell">
+    <section class="privacy-banner" aria-label="Privacy notice">
+      <span class="privacy-icon" aria-hidden="true">◆</span>
+      <div>
+        <strong>Your logs stay on your device.</strong>
+        <p>Your Windows security logs are analysed locally in your browser. Files are not uploaded or transmitted anywhere.</p>
+      </div>
+    </section>
+
+    <section class="panel import-panel" aria-labelledby="import-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">01 / IMPORT</p>
+          <h2 id="import-title">Bring in Windows events</h2>
+          <p class="muted">Upload an Event Viewer CSV or load fictional demo data to explore the workflow.</p>
+        </div>
+        <span id="demo-indicator" class="demo-tag hidden">Demo Data</span>
+      </div>
+      <div id="drop-zone" class="drop-zone" role="group" aria-label="CSV file drop area">
+        <div class="upload-symbol" aria-hidden="true">↑</div>
+        <div class="drop-copy">
+          <strong>Drop your CSV file here</strong>
+          <span>or choose a file from your computer</span>
+          <small>CSV only · Processed locally · No .evtx support in Version 1</small>
+        </div>
+        <button id="choose-file-btn" class="button button-primary" type="button">Choose CSV</button>
+        <input id="file-input" class="visually-hidden" type="file" accept=".csv,text/csv" aria-label="Choose CSV file">
+      </div>
+      <div id="file-status" class="status-message" role="status" aria-live="polite">No file loaded yet. Start with a demo dataset or upload a CSV.</div>
+      <div class="demo-row">
+        <span class="demo-label">Try a demo</span>
+        <button class="button button-secondary sample-btn" data-sample="normal-windows-events.csv" type="button">Load Normal Sample</button>
+        <button class="button button-secondary sample-btn" data-sample="repeated-failed-logons.csv" type="button">Load Repeated Failed Logons</button>
+        <button class="button button-secondary sample-btn" data-sample="password-guessing.csv" type="button">Load Password Guessing → Success</button>
+        <button class="button button-secondary sample-btn" data-sample="account-persistence.csv" type="button">Load Privilege Escalation</button>
+        <button class="button button-secondary sample-btn" data-sample="suspicious-admin-activity.csv" type="button">Load Mixed SOC Sample</button>
+      </div>
+      <div class="settings-row" aria-label="Detection settings">
+        <label for="threshold-input">Failed-logon threshold
+          <input id="threshold-input" type="number" min="3" max="20" value="5" inputmode="numeric">
+        </label>
+        <label for="window-input">Correlation window
+          <select id="window-input">
+            <option value="5" selected>5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="0">No time limit</option>
+          </select>
+        </label>
+        <button id="reset-settings-btn" class="button button-quiet" type="button">Reset Defaults</button>
+        <p class="settings-note">Educational defaults only; security thresholds vary by environment.</p>
+      </div>
+    </section>
+
+    <section id="results-section" class="results-section hidden" aria-labelledby="dashboard-title">
+      <div class="section-heading results-heading">
+        <div>
+          <p class="eyebrow">02 / TRIAGE OVERVIEW</p>
+          <h2 id="dashboard-title">Investigation dashboard</h2>
+          <p id="dataset-summary" class="muted">No dataset analysed.</p>
+        </div>
+        <div class="report-actions">
+          <button id="download-report-btn" class="button button-primary" type="button">Download SOC report</button>
+          <button id="clear-results-btn" class="button button-secondary" type="button">Clear data</button>
+        </div>
+      </div>
+      <div id="metric-grid" class="metric-grid" aria-label="Event summary metrics"></div>
+      <div class="content-grid">
+        <section class="panel subpanel" aria-labelledby="alerts-title">
+          <div class="section-heading compact-heading">
+            <div><p class="eyebrow">PRIORITISED FINDINGS</p><h3 id="alerts-title">Findings to review</h3></div>
+            <span id="finding-count" class="count-pill">0 findings</span>
+          </div>
+          <div id="alerts-list" class="alerts-list"><p class="empty-state">Load a dataset to see findings.</p></div>
+        </section>
+        <section class="panel subpanel" aria-labelledby="accounts-title">
+          <div class="section-heading compact-heading"><div><p class="eyebrow">CONTEXT</p><h3 id="accounts-title">Account activity</h3></div></div>
+          <div class="mini-section"><h4>Top accounts by event count</h4><div id="top-accounts" class="rank-list"></div></div>
+          <div class="mini-section"><h4>Top accounts with failed logons</h4><div id="failed-accounts" class="rank-list"></div></div>
+          <div class="mini-section"><h4>Most common Event IDs</h4><div id="common-event-ids" class="rank-list"></div></div>
+        </section>
+      </div>
+      <section class="panel table-panel" aria-labelledby="events-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">EVENT EXPLORER</p><h3 id="events-title">Parsed events</h3><p class="muted">Use the filters to narrow the table. Uploaded values are displayed as text.</p></div>
+          <span id="visible-events-count" class="count-pill">0 events</span>
+        </div>
+        <div class="filter-grid">
+          <label class="search-label" for="search-input">Search events
+            <input id="search-input" type="search" placeholder="Search account, message, computer…">
+          </label>
+          <label for="event-filter">Event ID
+            <select id="event-filter"><option value="">All Event IDs</option></select>
+          </label>
+          <label for="account-filter">Account
+            <select id="account-filter"><option value="">All accounts</option></select>
+          </label>
+          <label for="severity-filter">Severity
+            <select id="severity-filter"><option value="">All severities</option><option>Informational</option><option>Low</option><option>Medium</option><option>High</option></select>
+          </label>
+          <label for="source-filter">Source IP
+            <select id="source-filter"><option value="">All source IPs</option></select>
+          </label>
+          <label for="type-filter">Event type
+            <select id="type-filter"><option value="">All event types</option></select>
+          </label>
+        </div>
+        <div class="table-wrap" tabindex="0" aria-label="Scrollable parsed events table">
+          <table>
+            <thead><tr><th scope="col">Time</th><th scope="col">Event ID</th><th scope="col">Severity</th><th scope="col">Account</th><th scope="col">Source IP</th><th scope="col">Computer</th><th scope="col">Event summary</th></tr></thead>
+            <tbody id="events-table-body"><tr><td colspan="7" class="empty-state">No events loaded.</td></tr></tbody>
+          </table>
+        </div>
+        <p id="filter-status" class="muted small-text" role="status" aria-live="polite"></p>
+      </section>
+      <section class="panel timeline-panel" aria-labelledby="timeline-title">
+        <div class="section-heading compact-heading"><div><p class="eyebrow">SEQUENCE</p><h3 id="timeline-title">Noteworthy activity timeline</h3></div></div>
+        <ol id="timeline-list" class="timeline-list"><li class="empty-state">No noteworthy events yet.</li></ol>
+      </section>
+    </section>
+
+    <section class="panel learning-panel" aria-labelledby="soc-thinking-title">
+      <div class="section-heading"><div><p class="eyebrow">ANALYST WORKFLOW</p><h2 id="soc-thinking-title">How to Think Like a SOC Analyst</h2></div></div>
+      <p class="key-message">“One security event rarely tells the entire story. Analysts build context by correlating multiple events.”</p>
+      <div class="workflow-grid">
+        <div><span>01</span><p>Identify the event.</p></div><div><span>02</span><p>Understand what happened.</p></div><div><span>03</span><p>Identify the affected user or system.</p></div><div><span>04</span><p>Determine whether the activity is expected.</p></div><div><span>05</span><p>Look for related events.</p></div><div><span>06</span><p>Correlate authentication and privilege activity.</p></div><div><span>07</span><p>Gather additional evidence.</p></div><div><span>08</span><p>Decide whether escalation is required.</p></div>
+      </div>
+      <p class="analyst-note"><strong>Remember:</strong> A detection is a reason to investigate, not proof that an attacker is present.</p>
+    </section>
+
+    <section class="lower-grid">
+      <section class="panel info-panel" aria-labelledby="event-reference-title">
+        <div class="section-heading compact-heading"><div><p class="eyebrow">QUICK REFERENCE</p><h2 id="event-reference-title">Event ID learning guide</h2></div></div>
+        <dl class="event-reference">
+          <div><dt>4624</dt><dd>Successful logon — useful context, not automatically suspicious.</dd></div>
+          <div><dt>4625</dt><dd>Failed logon — repeated failures may deserve investigation.</dd></div>
+          <div><dt>4688</dt><dd>Process created — records a process start when auditing is enabled.</dd></div>
+          <div><dt>4720</dt><dd>User account created.</dd></div>
+          <div><dt>4726</dt><dd>User account deleted.</dd></div>
+          <div><dt>4728</dt><dd>Member added to a global security group.</dd></div>
+          <div><dt>4732</dt><dd>Member added to a local security group.</dd></div>
+          <div><dt>1102</dt><dd>Security audit log cleared.</dd></div>
+          <div><dt>4104</dt><dd>PowerShell script block logging event, if present.</dd></div>
+          <div><dt>7045</dt><dd>New service installed, if present in the exported data.</dd></div>
+        </dl>
+      </section>
+      <section class="panel info-panel" aria-labelledby="export-help-title">
+        <div class="section-heading compact-heading"><div><p class="eyebrow">GETTING STARTED</p><h2 id="export-help-title">Export events from Windows</h2></div></div>
+        <ol class="instruction-list">
+          <li>Open <strong>Event Viewer</strong> on a Windows system you own or are authorised to investigate.</li>
+          <li>Go to <strong>Windows Logs → Security</strong>.</li>
+          <li>Use Filter Current Log to narrow the events you need.</li>
+          <li>Choose <strong>Save All Events As…</strong> and select CSV if that option is available in your Windows version.</li>
+          <li>Upload the saved CSV here. Version 1 does not read raw <code>.evtx</code> files.</li>
+        </ol>
+        <p class="muted small-text">If your Event Viewer does not offer a suitable CSV export, see README.md for an optional PowerShell export method.</p>
+      </section>
+    </section>
+
+    <footer class="footer-notice">
+      <p><strong>Educational SOC triage tool.</strong> Findings indicate activity that may deserve investigation and do not prove malicious behaviour.</p>
+      <p>Only analyse logs from systems you own or are authorised to investigate.</p>
+      <p class="muted small-text">Version 1 · Static browser application · No external services</p>
+    </footer>
+  </main>
+  <noscript><p class="noscript-warning">JavaScript must be enabled in your browser for local CSV parsing and analysis.</p></noscript>
+</body>
+</html>
